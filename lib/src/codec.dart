@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:centrifuge/src/proto/client.pb.dart';
 import 'package:protobuf/protobuf.dart';
 
-abstract class CommandEncoder extends Converter<Command, List<int>> {}
+abstract class CommandEncoder<T> extends Converter<Command, T> {}
 
-abstract class ReplyDecoder extends Converter<List<int>, List<Reply>> {}
+abstract class ReplyDecoder<T> extends Converter<T, List<Reply>> {}
 
-class ProtobufCommandEncoder extends CommandEncoder {
+class ProtobufCommandEncoder extends CommandEncoder<List<int>> {
   @override
   List<int> convert(Command input) {
     final commandData = input.writeToBuffer();
@@ -20,7 +20,7 @@ class ProtobufCommandEncoder extends CommandEncoder {
   }
 }
 
-class ProtobufReplyDecoder extends ReplyDecoder {
+class ProtobufReplyDecoder extends ReplyDecoder<List<int>> {
   @override
   List<Reply> convert(List<int> input) {
     final replies = <Reply>[];
@@ -36,23 +36,40 @@ class ProtobufReplyDecoder extends ReplyDecoder {
   }
 }
 
-class JsonCommandEncoder extends CommandEncoder {
+class JsonCommandEncoder extends CommandEncoder<String> {
   @override
-  List<int> convert(Command input) {
-    return utf8.encode(input.writeToJson());
+  String convert(Command input) {
+    return jsonEncode(
+      input.toProto3Json(),
+    );
   }
 }
 
-class JsonReplyDecoder extends ReplyDecoder {
-  @override
-  List<Reply> convert(List<int> input) {
-    final replies = <Reply>[];
+class JsonReplyDecoder extends ReplyDecoder<String> {
+  Reply _json2Reply(Map<String, dynamic> json) {
+    final reply = Reply();
+    reply.mergeFromProto3Json(json);
 
-    final List<Map<String, dynamic>> data = jsonDecode(utf8.decode(input));
-    for (Map<String, dynamic> map in data) {
-      final reply = Reply();
-      reply.mergeFromJsonMap(map);
-      replies.add(reply);
+    return reply;
+  }
+
+  @override
+  List<Reply> convert(String input) {
+    final replies = <Reply>[];
+    final data = jsonDecode(input);
+
+    if (data is List) {
+      for (Map<String, dynamic> map in data) {
+        replies.add(
+          _json2Reply(map),
+        );
+      }
+    } if (data is Map<String, dynamic>) {
+      replies.add(
+        _json2Reply(data),
+      );
+    } else {
+      throw FormatException('Unexpected data type: ${data.runtimeType}');
     }
 
     return replies;

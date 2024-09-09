@@ -51,6 +51,30 @@ Transport protobufTransportBuilder({
   return transport;
 }
 
+Transport jsonTransportBuilder({
+  required String url,
+  required TransportConfig config,
+}) {
+  final replyDecoder = JsonReplyDecoder();
+  final commandEncoder = JsonCommandEncoder();
+
+  final transport = Transport(
+    () async {
+      final channel = connect(
+        Uri.parse(url),
+        headers: config.headers,
+      );
+      await channel.ready;
+      return channel;
+    },
+    config,
+    commandEncoder,
+    replyDecoder,
+  );
+
+  return transport;
+}
+
 abstract class GeneratedMessageSender {
   Future<Rep> sendMessage<Req extends GeneratedMessage, Rep extends GeneratedMessage>(
       Req request, Rep result);
@@ -154,7 +178,7 @@ class Transport implements GeneratedMessageSender {
       true,
     );
     final data = _commandEncoder.convert(command);
-    _socket!.sendData(data);
+    _socket!.sink.add(data);
   }
 
   Future? close() {
@@ -211,8 +235,7 @@ class Transport implements GeneratedMessageSender {
     _completers[command.id] = completer;
 
     final data = _commandEncoder.convert(command);
-
-    _socket!.sendData(data);
+    _socket!.sink.add(data);
 
     return completer.future;
   }

@@ -12,11 +12,3 @@ WebSocketChannel connect(
       protocols: protocols,
       headers: headers,
     );
-
-/// Extends the web socket channel
-extension WebSocketChannelExtension on WebSocketChannel {
-  /// Sends the given binary [data]
-  void sendData(List<int> data) {
-    sink.add(data);
-  }
-}

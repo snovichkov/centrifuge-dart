@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:centrifuge/centrifuge.dart';
 import 'package:centrifuge/src/codes.dart';
 import 'package:centrifuge/src/server_subscription.dart';
-import 'package:centrifuge/src/transport.dart';
 import 'package:meta/meta.dart';
 
 import 'proto/client.pb.dart' as protocol;
@@ -12,10 +11,10 @@ import 'subscription.dart';
 
 enum State { disconnected, connecting, connected }
 
-Client createClient(String url, [ClientConfig? config]) => ClientImpl(
+Client createClient(String url, [ClientConfig? config, TransportBuilder? transportBuilder]) => ClientImpl(
       url,
       config ?? ClientConfig(),
-      protobufTransportBuilder,
+      transportBuilder ?? protobufTransportBuilder,
     );
 
 abstract class Client {
